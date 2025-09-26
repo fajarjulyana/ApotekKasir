@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Manajemen Pelanggan - Apotek{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-users me-3"></i>Manajemen Pelanggan
+        </h1>
+        <p class="page-subtitle">Kelola data pelanggan dan riwayat medis</p>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Daftar Pelanggan
+                    </h5>
+                    <a href="{{ url_for('add_customer') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Tambah Pelanggan
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if customers %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="customersTable">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>NIK</th>
+                                    <th>Nama</th>
+                                    <th>Usia</th>
+                                    <th>Jenis Kelamin</th>
+                                    <th>Telepon</th>
+                                    <th>WhatsApp</th>
+                                    <th>Email</th>
+                                    <th>Alamat</th>
+                                    <th>Kontak Darurat</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in customers %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td><strong>{{ customer.nik }}</strong></td>
+                                    <td>{{ customer.name }}</td>
+                                    <td>
+                                        {% if customer.age %}
+                                            {{ customer.age }} tahun
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.gender %}
+                                            <span class="badge bg-{{ 'primary' if customer.gender == 'Pria' else 'info' }}">
+                                                {{ customer.gender }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.phone %}
+                                            <a href="tel:{{ customer.phone }}" class="text-decoration-none">
+                                                <i class="fas fa-phone me-1"></i>{{ customer.phone }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.whatsapp %}
+                                            <a href="https://wa.me/{{ customer.whatsapp.replace('0', '62', 1) if customer.whatsapp.startswith('0') else customer.whatsapp }}" 
+                                               target="_blank" class="text-success text-decoration-none">
+                                                <i class="fab fa-whatsapp me-1"></i>{{ customer.whatsapp }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.email %}
+                                            <a href="mailto:{{ customer.email }}" class="text-decoration-none">
+                                                <i class="fas fa-envelope me-1"></i>{{ customer.email }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.address %}
+                                            <small class="text-truncate d-inline-block" style="max-width: 150px;">{{ customer.address }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.emergency_contact_name %}
+                                            <small>
+                                                {{ customer.emergency_contact_name }}<br>
+                                                {% if customer.emergency_contact_phone %}
+                                                    <i class="fas fa-phone me-1"></i>{{ customer.emergency_contact_phone }}
+                                                {% endif %}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('edit_customer', customer_id=customer.id) }}" 
+                                               class="btn btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-info" 
+                                                    title="Detail" onclick="showCustomerDetail({{ customer.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-5x text-muted mb-3"></i>
+                        <h5 class="text-muted">Belum ada pelanggan yang terdaftar</h5>
+                        <p class="text-muted">Klik tombol "Tambah Pelanggan" untuk menambah data pelanggan baru</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Detail Modal -->
+<div class="modal fade" id="customerDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user me-2"></i>Detail Pelanggan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="customerDetailContent">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        color: #495057;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#customersTable').DataTable({
+        responsive: true,
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json'
+        },
+        columnDefs: [
+            { targets: [10], orderable: false }
+        ]
+    });
+});
+
+function showCustomerDetail(customerId) {
+    // Implementation for showing customer detail
+    $('#customerDetailModal').modal('show');
+    $('#customerDetailContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</div>');
+    
+    // Here you would make an AJAX call to get customer details
+    // For now, just show a placeholder
+    setTimeout(function() {
+        $('#customerDetailContent').html('<p>Detail pelanggan akan ditampilkan di sini.</p>');
+    }, 1000);
+}
+</script>
+{% endblock %}

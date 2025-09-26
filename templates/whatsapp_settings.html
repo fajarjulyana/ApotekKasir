@@ -1,0 +1,182 @@
+
+{% extends "base.html" %}
+
+{% block title %}Pengaturan WhatsApp - Manajemen Apotek{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fab fa-whatsapp me-3"></i>Pengaturan WhatsApp
+    </h1>
+    <p class="page-subtitle">Konfigurasi notifikasi WhatsApp untuk sistem reminder</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cogs"></i> Konfigurasi API WhatsApp</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="api_provider" class="form-label">Provider API WhatsApp</label>
+                        <select class="form-select" id="api_provider" name="api_provider">
+                            <option value="demo">Demo Mode (Console Log)</option>
+                            <option value="twilio">Twilio WhatsApp API</option>
+                            <option value="whatsapp_business">WhatsApp Business API</option>
+                            <option value="wablas">Wablas</option>
+                            <option value="fonnte">Fonnte</option>
+                        </select>
+                        <div class="form-text">Pilih provider API yang akan digunakan untuk mengirim pesan</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="api_url" class="form-label">API URL</label>
+                        <input type="url" class="form-control" id="api_url" name="api_url" 
+                               placeholder="https://api.whatsapp.com/send">
+                        <div class="form-text">URL endpoint API WhatsApp provider</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="api_token" class="form-label">API Token/Key</label>
+                        <input type="password" class="form-control" id="api_token" name="api_token" 
+                               placeholder="Your API token">
+                        <div class="form-text">Token atau key untuk autentikasi API</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sender_number" class="form-label">Nomor Pengirim</label>
+                        <input type="tel" class="form-control" id="sender_number" name="sender_number" 
+                               placeholder="628123456789">
+                        <div class="form-text">Nomor WhatsApp yang digunakan untuk mengirim pesan</div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6>Template Pesan</h6>
+                    <div class="mb-3">
+                        <label for="message_template" class="form-label">Template Notifikasi Restock</label>
+                        <textarea class="form-control" id="message_template" name="message_template" rows="8">🏥 *APOTEK NOTIFICATION*
+
+Halo {customer_name}! 👋
+
+Kabar baik! Obat yang Anda tunggu sudah tersedia kembali:
+
+💊 *{medicine_name}*
+📦 Jumlah tersedia: {medicine_stock} {medicine_unit}
+📅 Tanggal permintaan: {request_date}
+
+Silakan datang ke apotek kami untuk mengambil obat tersebut.
+
+Stok terbatas, jadi pastikan Anda datang segera!
+
+📍 Alamat: {pharmacy_address}
+📞 Telepon: {pharmacy_phone}
+🕒 Jam buka: {pharmacy_hours}
+
+Terima kasih! 🙏</textarea>
+                        <div class="form-text">
+                            Template pesan yang akan dikirim. Gunakan variabel: {customer_name}, {medicine_name}, {medicine_stock}, {medicine_unit}, {request_date}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-info" onclick="testWhatsApp()">
+                            <i class="fas fa-paper-plane"></i> Test Kirim WhatsApp
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Simpan Pengaturan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Informasi</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-lightbulb"></i> Tips Penggunaan:</h6>
+                    <ul class="mb-0">
+                        <li>Pastikan nomor WhatsApp pelanggan benar</li>
+                        <li>Test pengaturan sebelum digunakan</li>
+                        <li>Monitor log untuk memastikan pesan terkirim</li>
+                        <li>Gunakan provider API yang reliable</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Provider Rekomendasi:</h6>
+                    <ul class="mb-0">
+                        <li><strong>Twilio:</strong> Reliable, berbayar</li>
+                        <li><strong>Fonnte:</strong> Lokal Indonesia</li>
+                        <li><strong>Wablas:</strong> Mudah setup</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line"></i> Statistik WhatsApp</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Pesan Hari Ini:</span>
+                        <strong>0</strong>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Pesan Minggu Ini:</span>
+                        <strong>0</strong>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Status Terakhir:</span>
+                        <span class="badge bg-success">Aktif</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function testWhatsApp() {
+    const testNumber = prompt('Masukkan nomor WhatsApp untuk test (format: 628123456789):');
+    if (testNumber) {
+        fetch('/api/whatsapp/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                phone: testNumber,
+                message: 'Test pesan dari sistem apotek. Jika Anda menerima pesan ini, konfigurasi WhatsApp berhasil!'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Test pesan berhasil dikirim!');
+            } else {
+                alert('Gagal mengirim test pesan: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

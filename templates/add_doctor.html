@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Tambah Dokter - Apotek{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-user-plus me-3"></i>Tambah Dokter Baru
+        </h1>
+        <p class="page-subtitle">Daftarkan dokter baru dengan data lengkap</p>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-form me-2"></i>Form Data Dokter
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="doctorForm">
+                        <div class="row">
+                            <!-- Personal Information -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-user me-2"></i>Informasi Personal
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="nik" class="form-label">NIK <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="nik" name="nik" maxlength="16" 
+                                           pattern="[0-9]{16}" title="NIK harus 16 digit angka" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="str_number" class="form-label">Nomor STR <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="str_number" name="str_number" required>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="age" class="form-label">Usia</label>
+                                            <input type="number" class="form-control" id="age" name="age" min="0" max="150">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="gender" class="form-label">Jenis Kelamin</label>
+                                            <select class="form-select" id="gender" name="gender">
+                                                <option value="">Pilih Jenis Kelamin</option>
+                                                <option value="Pria">Pria</option>
+                                                <option value="Wanita">Wanita</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="birth_date" class="form-label">Tanggal Lahir</label>
+                                    <input type="date" class="form-control" id="birth_date" name="birth_date">
+                                </div>
+                            </div>
+                            
+                            <!-- Professional Information -->
+                            <div class="col-md-6">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-stethoscope me-2"></i>Informasi Profesional
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label for="specialization" class="form-label">Spesialisasi</label>
+                                    <input type="text" class="form-control" id="specialization" name="specialization" 
+                                           placeholder="Contoh: Dokter Umum, Spesialis Penyakit Dalam, dll">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="hospital_clinic" class="form-label">Rumah Sakit/Klinik</label>
+                                    <input type="text" class="form-control" id="hospital_clinic" name="hospital_clinic">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="practice_address" class="form-label">Alamat Praktik</label>
+                                    <textarea class="form-control" id="practice_address" name="practice_address" rows="3"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="license_expiry_date" class="form-label">Tanggal Kadaluwarsa STR</label>
+                                    <input type="date" class="form-control" id="license_expiry_date" name="license_expiry_date">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="row">
+                            <!-- Contact Information -->
+                            <div class="col-md-12">
+                                <h6 class="text-info mb-3">
+                                    <i class="fas fa-phone me-2"></i>Informasi Kontak
+                                </h6>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="phone" class="form-label">Nomor Telepon</label>
+                                            <input type="tel" class="form-control" id="phone" name="phone">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="whatsapp" class="form-label">WhatsApp</label>
+                                            <input type="tel" class="form-control" id="whatsapp" name="whatsapp">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="email" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="email" name="email">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('doctors') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Batal
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Simpan Dokter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Format NIK input
+    $('#nik').on('input', function() {
+        this.value = this.value.replace(/\D/g, '');
+    });
+    
+    // Auto-calculate age from birth date
+    $('#birth_date').on('change', function() {
+        if (this.value) {
+            var birthDate = new Date(this.value);
+            var today = new Date();
+            var age = today.getFullYear() - birthDate.getFullYear();
+            var monthDiff = today.getMonth() - birthDate.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            $('#age').val(age >= 0 ? age : '');
+        }
+    });
+    
+    // Check license expiry date
+    $('#license_expiry_date').on('change', function() {
+        if (this.value) {
+            var expiryDate = new Date(this.value);
+            var today = new Date();
+            var daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry <= 30) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan STR',
+                    text: 'STR akan segera kadaluwarsa dalam ' + daysUntilExpiry + ' hari'
+                });
+            }
+        }
+    });
+    
+    // Form validation
+    $('#doctorForm').on('submit', function(e) {
+        var nik = $('#nik').val();
+        if (nik && nik.length !== 16) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'NIK Tidak Valid',
+                text: 'NIK harus terdiri dari 16 digit angka'
+            });
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
