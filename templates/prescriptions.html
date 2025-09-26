@@ -1,0 +1,38 @@
+Add shortage report link to prescriptions table
+Replacing
+<old_str>
+<td>
+                                        <a href="{{ url_for('view_prescription', prescription_id=prescription.id) }}"
+                                           class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Lihat Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if prescription.status == 'pending' %}
+                                        <a href="{{ url_for('process_prescription', prescription_id=prescription.id) }}"
+                                           class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Proses Resep">
+                                            <i class="fas fa-cogs"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+</old_str>
+with
+<new_str>
+<td>
+                                        <a href="{{ url_for('view_prescription', prescription_id=prescription.id) }}"
+                                           class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Lihat Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if prescription.status == 'pending' %}
+                                        <a href="{{ url_for('process_prescription', prescription_id=prescription.id) }}"
+                                           class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Proses Resep">
+                                            <i class="fas fa-cogs"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if prescription.status in ['processed', 'completed'] %}
+                                        <a href="{{ url_for('prescription_shortage_report', prescription_id=prescription.id) }}"
+                                           class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Laporan Kekurangan">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+</new_str>
+</changes>

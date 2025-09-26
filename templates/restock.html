@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Restock - Manajemen Apotek{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-shopping-cart"></i> Daftar Restock</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            Daftar obat yang perlu direstock berdasarkan stok minimum dan penjualan.
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Obat yang Perlu Direstock</h5>
+            </div>
+            <div class="card-body">
+                {% if medicines %}
+                <div class="table-responsive">
+                    <table class="table table-striped" id="restockTable">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th>Nama Obat</th>
+                                <th>Kategori</th>
+                                <th>Stok Saat Ini</th>
+                                <th>Stok Minimum</th>
+                                <th>Harga Beli Terakhir</th>
+                                <th>Saran Jumlah</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for medicine in medicines %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input medicine-checkbox" 
+                                           value="{{ medicine.id }}" data-name="{{ medicine.name }}">
+                                </td>
+                                <td>
+                                    <strong>{{ medicine.name }}</strong>
+                                    {% if medicine.generic_name %}
+                                    <br><small class="text-muted">{{ medicine.generic_name }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ medicine.category_ref.name if medicine.category_ref else '-' }}</td>
+                                <td>
+                                    <span class="badge bg-danger">
+                                        {{ medicine.total_quantity }} {{ medicine.unit }}
+                                    </span>
+                                </td>
+                                <td>{{ medicine.minimum_stock }} {{ medicine.unit }}</td>
+                                <td>Rp {{ "%.2f"|format(medicine.purchase_price) }}</td>
+                                <td>
+                                    <span class="badge bg-warning">
+                                        {{ (medicine.minimum_stock * 2) - medicine.total_quantity }} {{ medicine.unit }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('add_batch', medicine_id=medicine.id) }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus"></i> Tambah Stok
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Bulk Actions -->
+                <div class="mt-3">
+                    <button type="button" class="btn btn-success" onclick="printRestockList()">
+                        <i class="fas fa-print"></i> Cetak Daftar Restock
+                    </button>
+                    <button type="button" class="btn btn-info" onclick="exportRestockList()">
+                        <i class="fas fa-download"></i> Export Excel
+                    </button>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Semua obat memiliki stok yang cukup. Tidak ada yang perlu direstock.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#restockTable').DataTable({
+        responsive: true,
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/id.json'
+        }
+    });
+    
+    // Select all functionality
+    $('#selectAll').change(function() {
+        $('.medicine-checkbox').prop('checked', this.checked);
+    });
+    
+    $('.medicine-checkbox').change(function() {
+        if ($('.medicine-checkbox:checked').length === $('.medicine-checkbox').length) {
+            $('#selectAll').prop('checked', true);
+        } else {
+            $('#selectAll').prop('checked', false);
+        }
+    });
+});
+
+function printRestockList() {
+    var selected = [];
+    $('.medicine-checkbox:checked').each(function() {
+        selected.push($(this).data('name'));
+    });
+    
+    if (selected.length === 0) {
+        alert('Pilih obat yang ingin dicetak terlebih dahulu');
+        return;
+    }
+    
+    // TODO: Implement print functionality
+    alert('Fungsi cetak akan segera diimplementasi untuk: ' + selected.join(', '));
+}
+
+function exportRestockList() {
+    // TODO: Implement export functionality
+    alert('Fungsi export akan segera diimplementasi');
+}
+</script>
+{% endblock %}
