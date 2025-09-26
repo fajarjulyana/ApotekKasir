@@ -1,0 +1,2 @@
+# ApotekKasir
+Python Flask Postgresql
