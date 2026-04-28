@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Manajemen Dokter - Apotek{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-user-md me-3"></i>Manajemen Dokter
+        </h1>
+        <p class="page-subtitle">Kelola data dokter dan informasi praktik</p>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Daftar Dokter
+                    </h5>
+                    <a href="{{ url_for('add_doctor') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Tambah Dokter
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if doctors %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="doctorsTable">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>NIK</th>
+                                    <th>Nama</th>
+                                    <th>No. STR</th>
+                                    <th>Usia</th>
+                                    <th>Spesialisasi</th>
+                                    <th>Telepon</th>
+                                    <th>WhatsApp</th>
+                                    <th>Email</th>
+                                    <th>Tempat Praktik</th>
+                                    <th>Exp. STR</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doctor in doctors %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td><strong>{{ doctor.nik }}</strong></td>
+                                    <td>{{ doctor.name }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ doctor.str_number }}</span>
+                                    </td>
+                                    <td>
+                                        {% if doctor.age %}
+                                            {{ doctor.age }} tahun
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if doctor.specialization %}
+                                            <span class="badge bg-success">{{ doctor.specialization }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if doctor.phone %}
+                                            <a href="tel:{{ doctor.phone }}" class="text-decoration-none">
+                                                <i class="fas fa-phone me-1"></i>{{ doctor.phone }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if doctor.whatsapp %}
+                                            <a href="https://wa.me/{{ doctor.whatsapp.replace('0', '62', 1) if doctor.whatsapp.startswith('0') else doctor.whatsapp }}" 
+                                               target="_blank" class="text-success text-decoration-none">
+                                                <i class="fab fa-whatsapp me-1"></i>{{ doctor.whatsapp }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if doctor.email %}
+                                            <a href="mailto:{{ doctor.email }}" class="text-decoration-none">
+                                                <i class="fas fa-envelope me-1"></i>{{ doctor.email }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if doctor.hospital_clinic %}
+                                            <small class="text-truncate d-inline-block" style="max-width: 150px;">{{ doctor.hospital_clinic }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if doctor.license_expiry_date %}
+                                            {% set today = moment.utcnow().date() %}
+                                            {% set days_until_expiry = (doctor.license_expiry_date - today).days %}
+                                            {% if days_until_expiry <= 30 %}
+                                                <span class="badge bg-danger" title="Kadaluwarsa dalam {{ days_until_expiry }} hari">{{ doctor.license_expiry_date.strftime('%d/%m/%Y') }}</span>
+                                            {% elif days_until_expiry <= 90 %}
+                                                <span class="badge bg-warning" title="Kadaluwarsa dalam {{ days_until_expiry }} hari">{{ doctor.license_expiry_date.strftime('%d/%m/%Y') }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success" title="Kadaluwarsa dalam {{ days_until_expiry }} hari">{{ doctor.license_expiry_date.strftime('%d/%m/%Y') }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('edit_doctor', doctor_id=doctor.id) }}" 
+                                               class="btn btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-info" 
+                                                    title="Detail" onclick="showDoctorDetail({{ doctor.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-md fa-5x text-muted mb-3"></i>
+                        <h5 class="text-muted">Belum ada dokter yang terdaftar</h5>
+                        <p class="text-muted">Klik tombol "Tambah Dokter" untuk menambah data dokter baru</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Doctor Detail Modal -->
+<div class="modal fade" id="doctorDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-md me-2"></i>Detail Dokter
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="doctorDetailContent">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        color: #495057;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#doctorsTable').DataTable({
+        responsive: true,
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json'
+        },
+        columnDefs: [
+            { targets: [11], orderable: false }
+        ]
+    });
+});
+
+function showDoctorDetail(doctorId) {
+    // Implementation for showing doctor detail
+    $('#doctorDetailModal').modal('show');
+    $('#doctorDetailContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</div>');
+    
+    // Here you would make an AJAX call to get doctor details
+    // For now, just show a placeholder
+    setTimeout(function() {
+        $('#doctorDetailContent').html('<p>Detail dokter akan ditampilkan di sini.</p>');
+    }, 1000);
+}
+</script>
+{% endblock %}

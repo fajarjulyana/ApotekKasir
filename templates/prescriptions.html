@@ -1,0 +1,94 @@
+
+{% extends "base.html" %}
+
+{% block title %}Manajemen Resep Dokter{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Manajemen Resep Dokter</h3>
+                    <a href="{{ url_for('upload_prescription') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Upload Resep Baru
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>No. Resep</th>
+                                    <th>Tanggal Resep</th>
+                                    <th>Pelanggan</th>
+                                    <th>Dokter</th>
+                                    <th>Status</th>
+                                    <th>Tanggal Upload</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prescription in prescriptions %}
+                                <tr>
+                                    <td>{{ prescription.prescription_number }}</td>
+                                    <td>{{ prescription.prescription_date.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ prescription.customer.name }}</td>
+                                    <td>{{ prescription.doctor.name }}</td>
+                                    <td>
+                                        {% if prescription.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif prescription.status == 'processed' %}
+                                            <span class="badge bg-success">Diproses</span>
+                                        {% elif prescription.status == 'completed' %}
+                                            <span class="badge bg-primary">Selesai</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ prescription.status.title() }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ prescription.uploaded_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('view_prescription', prescription_id=prescription.id) }}"
+                                           class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Lihat Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if prescription.status == 'pending' %}
+                                        <a href="{{ url_for('process_prescription', prescription_id=prescription.id) }}"
+                                           class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Proses Resep">
+                                            <i class="fas fa-cogs"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if prescription.status in ['processed', 'completed'] %}
+                                        <a href="{{ url_for('prescription_shortage_report', prescription_id=prescription.id) }}"
+                                           class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Laporan Kekurangan">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">Belum ada resep yang diupload</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

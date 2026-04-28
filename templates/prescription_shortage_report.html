@@ -1,0 +1,188 @@
+
+{% extends "base.html" %}
+
+{% block title %}Laporan Kekurangan Resep - Manajemen Apotek{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-exclamation-triangle me-3"></i>Laporan Kekurangan Obat Resep
+    </h1>
+    <p class="page-subtitle">Resep {{ prescription.prescription_number }}</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-prescription me-2"></i>Detail Resep
+                </h5>
+                <div>
+                    <a href="{{ url_for('print_prescription_shortage_report', prescription_id=prescription.id) }}" 
+                       class="btn btn-outline-primary btn-sm" target="_blank">
+                        <i class="fas fa-print me-1"></i> Cetak PDF
+                    </a>
+                    <a href="{{ url_for('prescriptions') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Kembali
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="fw-bold">No. Resep:</td>
+                                <td>{{ prescription.prescription_number }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Tanggal Resep:</td>
+                                <td>{{ prescription.prescription_date.strftime('%d/%m/%Y') }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Status:</td>
+                                <td>
+                                    {% if prescription.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif prescription.status == 'processed' %}
+                                        <span class="badge bg-info">Diproses</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Selesai</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="fw-bold">Pasien:</td>
+                                <td>{{ prescription.customer.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Dokter:</td>
+                                <td>{{ prescription.doctor.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Diagnosis:</td>
+                                <td>{{ prescription.diagnosis or '-' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                {% if shortage_items %}
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Obat yang Tidak Tersedia atau Kurang Stok</h6>
+                    <p class="mb-0">Berikut adalah daftar obat yang tidak tersedia atau stoknya tidak mencukupi:</p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-danger">
+                            <tr>
+                                <th>Nama Obat</th>
+                                <th class="text-center">Diminta</th>
+                                <th class="text-center">Tersedia</th>
+                                <th class="text-center">Kurang</th>
+                                <th>Dosis</th>
+                                <th>Instruksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in shortage_items %}
+                            <tr>
+                                <td class="fw-medium">{{ item.medicine_name }}</td>
+                                <td class="text-center">{{ item.requested_quantity }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-{{ 'danger' if item.available_quantity == 0 else 'warning' }}">
+                                        {{ item.available_quantity }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger">{{ item.shortage_quantity }}</span>
+                                </td>
+                                <td>{{ item.dosage or '-' }}</td>
+                                <td>{{ item.instructions or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Tindak Lanjut</h6>
+                        <ul class="mb-0">
+                            <li>Hubungi supplier untuk obat yang tidak tersedia</li>
+                            <li>Tambahkan obat ke daftar prioritas pembelian</li>
+                            <li>Informasikan kepada dokter dan pasien tentang keterbatasan stok</li>
+                            <li>Pertimbangkan obat alternatif jika memungkinkan</li>
+                        </ul>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-check-circle me-2"></i>Semua Obat Tersedia</h6>
+                    <p class="mb-0">Semua obat dalam resep ini tersedia dan dapat dipenuhi.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard-list me-2"></i>Semua Item Resep
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for item in prescription.prescription_items %}
+                <div class="mb-3 p-3 border rounded {{ 'border-danger bg-light' if not item.is_available or (item.medicine and item.medicine.total_quantity < item.quantity) else 'border-success' }}">
+                    <h6 class="mb-2">{{ item.medicine_name }}</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Jumlah:</small><br>
+                            <strong>{{ item.quantity }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Stok:</small><br>
+                            <strong>{{ item.medicine.total_quantity if item.medicine else 0 }}</strong>
+                        </div>
+                    </div>
+                    {% if item.dosage %}
+                    <div class="mt-2">
+                        <small class="text-muted">Dosis:</small><br>
+                        <span class="badge bg-secondary">{{ item.dosage }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="mt-2">
+                        {% if item.is_available and item.medicine and item.medicine.total_quantity >= item.quantity %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i> Tersedia
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times"></i> Tidak Tersedia
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}

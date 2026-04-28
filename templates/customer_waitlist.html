@@ -1,0 +1,414 @@
+# models.py
+
+from datetime import datetime
+from . import db
+
+
+class Customer(db.Model):
+    __tablename__ = 'customers'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False, unique=True)
+    waitlists = db.relationship('Waitlist', backref='customer', lazy=True)
+
+    def __repr__(self):
+        return f'<Customer {self.name}>'
+
+
+class Medicine(db.Model):
+    __tablename__ = 'medicines'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    stock = db.Column(db.Integer, default=0)
+    waitlists = db.relationship('Waitlist', backref='medicine', lazy=True)
+
+    def __repr__(self):
+        return f'<Medicine {self.name}>'
+
+
+class Waitlist(db.Model):
+    __tablename__ = 'waitlists'
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
+    medicine_id = db.Column(db.Integer, db.ForeignKey('medicines.id'), nullable=False)
+    quantity_requested = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    is_notified = db.Column(db.Boolean, default=False)
+    notified_at = db.Column(db.DateTime, nullable=True)
+
+    def __repr__(self):
+        return f'<Waitlist {self.customer.name} - {self.medicine.name}>'
+
+
+# routes.py
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from .models import Customer, Medicine, Waitlist
+from . import db
+from twilio.rest import Client
+import os
+
+# Initialize Twilio client
+account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+twilio_phone_number = os.environ.get('TWILIO_PHONE_NUMBER')
+
+if account_sid and auth_token and twilio_phone_number:
+    client = Client(account_sid, auth_token)
+else:
+    client = None
+    print("Twilio credentials not found. WhatsApp notifications will not work.")
+
+waitlist_bp = Blueprint('waitlist', __name__)
+
+@waitlist_bp.route('/')
+def index():
+    waitlists = Waitlist.query.order_by(Waitlist.created_at.desc()).all()
+    medicines = Medicine.query.all()
+    customers = Customer.query.all()
+    return render_template('waitlist/index.html', waitlists=waitlists, medicines=medicines, customers=customers)
+
+@waitlist_bp.route('/add', methods=['POST'])
+def add_to_waitlist():
+    customer_name = request.form.get('customer_name')
+    customer_phone = request.form.get('customer_phone')
+    medicine_id = request.form.get('medicine_id')
+    quantity_requested = request.form.get('quantity_requested')
+
+    if not all([customer_name, customer_phone, medicine_id, quantity_requested]):
+        flash('Semua field wajib diisi.', 'danger')
+        return redirect(url_for('waitlist.index'))
+
+    customer = Customer.query.filter_by(phone_number=customer_phone).first()
+    if not customer:
+        customer = Customer(name=customer_name, phone_number=customer_phone)
+        db.session.add(customer)
+        db.session.commit()
+
+    medicine = Medicine.query.get(medicine_id)
+    if not medicine:
+        flash('Obat tidak ditemukan.', 'danger')
+        return redirect(url_for('waitlist.index'))
+
+    try:
+        quantity = int(quantity_requested)
+        if quantity <= 0:
+            raise ValueError("Quantity must be positive.")
+    except ValueError:
+        flash('Jumlah yang diminta tidak valid.', 'danger')
+        return redirect(url_for('waitlist.index'))
+
+    waitlist_item = Waitlist(customer_id=customer.id, medicine_id=medicine.id, quantity_requested=quantity)
+    db.session.add(waitlist_item)
+    db.session.commit()
+
+    flash(f'Berhasil menambahkan {customer_name} ke daftar tunggu untuk {medicine.name}.', 'success')
+    return redirect(url_for('waitlist.index'))
+
+@waitlist_bp.route('/notify/<int:waitlist_id>')
+def send_individual_notification(waitlist_id):
+    if not client:
+        flash('Layanan notifikasi WhatsApp tidak tersedia.', 'danger')
+        return redirect(url_for('waitlist.index'))
+
+    item = Waitlist.query.get_or_404(waitlist_id)
+
+    # Check if medicine is back in stock
+    if item.medicine.stock < item.quantity_requested:
+        flash(f'Stok {item.medicine.name} masih kurang ({item.medicine.stock} / {item.quantity_requested}).', 'warning')
+        return redirect(url_for('waitlist.index'))
+
+    # Check if already notified
+    if item.is_notified:
+        flash(f'Pelanggan {item.customer.name} sudah diberi notifikasi untuk {item.medicine.name}.', 'info')
+        return redirect(url_for('waitlist.index'))
+
+    message_body = (
+        f"Halo {item.customer.name},\n\n"
+        f"Kabar baik! Obat {item.medicine.name} yang Anda pesan sejumlah {item.quantity_requested} kini sudah tersedia kembali.\n\n"
+        f"Silakan datang ke apotek kami untuk mengambilnya.\n\n"
+        f"Terima kasih."
+    )
+
+    try:
+        message = client.messages.create(
+            from_=f'whatsapp:{twilio_phone_number}',
+            body=message_body,
+            to=f'whatsapp:{item.customer.phone_number}'
+        )
+        # Update waitlist status
+        item.is_notified = True
+        item.notified_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Notifikasi WhatsApp berhasil dikirim ke {item.customer.name}. SID: {message.sid}', 'success')
+    except Exception as e:
+        flash(f'Gagal mengirim notifikasi WhatsApp ke {item.customer.name}: {e}', 'danger')
+        # Log the error for debugging
+        print(f"Error sending WhatsApp message to {item.customer.phone_number}: {e}")
+
+    return redirect(url_for('waitlist.index'))
+
+@waitlist_bp.route('/delete/<int:waitlist_id>')
+def delete_from_waitlist(waitlist_id):
+    item = Waitlist.query.get_or_404(waitlist_id)
+    db.session.delete(item)
+    db.session.commit()
+    flash('Item daftar tunggu berhasil dihapus.', 'success')
+    return redirect(url_for('waitlist.index'))
+
+# app.py
+from flask import Flask, render_template
+from .models import db
+from .routes import waitlist_bp
+import os
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = os.environ.get('SECRET_KEY', 'a_very_secret_key')
+
+db.init_app(app)
+
+app.register_blueprint(waitlist_bp, url_prefix='/waitlist')
+
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
+
+# templates/waitlist/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Tunggu Obat</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        .badge {
+            font-size: 0.8em;
+        }
+        .me-2 {
+            margin-right: 0.5rem !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-center">Daftar Tunggu Obat</h1>
+
+        <!-- Form Tambah ke Waitlist -->
+        <div class="card mb-4">
+            <div class="card-header">
+                Tambah ke Daftar Tunggu
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_to_waitlist') }}" method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="customer_name" class="form-label">Nama Pelanggan</label>
+                            <input type="text" class="form-control" id="customer_name" name="customer_name" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="customer_phone" class="form-label">Nomor WhatsApp</label>
+                            <input type="text" class="form-control" id="customer_phone" name="customer_phone" placeholder="628xxxxxxxxxx" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="medicine_id" class="form-label">Obat</label>
+                            <select class="form-select" id="medicine_id" name="medicine_id" required>
+                                <option value="">Pilih Obat...</option>
+                                {% for medicine in medicines %}
+                                    <option value="{{ medicine.id }}">{{ medicine.name }} (Stok: {{ medicine.stock }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="quantity_requested" class="form-label">Jumlah</label>
+                            <input type="number" class="form-control" id="quantity_requested" name="quantity_requested" min="1" value="1" required>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabel Daftar Tunggu -->
+        <div class="card">
+            <div class="card-header">
+                Daftar Tunggu Aktif
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nama Pelanggan</th>
+                                <th>Nomor WhatsApp</th>
+                                <th>Obat</th>
+                                <th>Jumlah Diminta</th>
+                                <th>Tanggal Pesan</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in waitlists %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ item.customer.name }}</td>
+                                <td>{{ item.customer.phone_number }}</td>
+                                <td>{{ item.medicine.name }}</td>
+                                <td>{{ item.quantity_requested }}</td>
+                                <td>{{ item.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    {% if item.medicine.stock >= item.quantity_requested %}
+                                        {% if not item.is_notified %}
+                                            <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle"></i> Stok Tersedia</span>
+                                        {% else %}
+                                            <span class="badge bg-info"><i class="fas fa-check-circle"></i> Sudah Diberitahu</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Stok Kurang</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.medicine.stock >= item.quantity_requested %}
+                                        {% if not item.is_notified %}
+                                            <a href="{{ url_for('send_individual_notification', waitlist_id=item.id) }}"
+                                               class="btn btn-sm btn-success me-2"
+                                               onclick="return confirm('Kirim notifikasi WhatsApp ke {{ item.customer.name }}?')">
+                                                <i class="fab fa-whatsapp"></i> Kirim WhatsApp
+                                            </a>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> Sudah Diberitahu
+                                            </span>
+                                            <small class="text-muted d-block">{{ item.notified_at.strftime('%d/%m/%Y %H:%M') if item.notified_at }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-danger" onclick="markExpired({{ batch.id }})">
+                                            <i class="fas fa-times"></i> Tandai Kadaluwarsa
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function markExpired(batchId) {
+            if (confirm('Apakah Anda yakin ingin menandai batch ini sebagai kadaluwarsa?')) {
+                // Implement actual deletion or marking logic here if needed
+                alert('Fitur tandai kadaluwarsa belum diimplementasikan sepenuhnya.');
+            }
+        }
+    </script>
+</body>
+</html>
+
+# templates/home.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Apotek</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #e2f0d9; /* Light green background */
+            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #006400; /* Dark green */
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .btn-custom {
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 18px;
+            border-radius: 8px;
+            margin: 10px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-custom:hover {
+            background-color: #45a049; /* Darker green */
+            transform: translateY(-2px);
+        }
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Selamat Datang di Sistem Informasi Apotek</h1>
+        <p class="lead">Kelola obat, pelanggan, dan daftar tunggu dengan mudah.</p>
+        <a href="{{ url_for('waitlist.index') }}" class="btn btn-custom">
+            <i class="fas fa-list-alt"></i> Kelola Daftar Tunggu Obat
+        </a>
+        <!-- Anda bisa menambahkan link ke modul lain di sini -->
+        <!-- <a href="#" class="btn btn-custom">Manajemen Obat</a> -->
+        <!-- <a href="#" class="btn btn-custom">Manajemen Pelanggan</a> -->
+    </div>
+    <div class="footer">
+        © 2023 Sistem Apotek. All rights reserved.
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Tambah Obat - Manajemen Apotek{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-plus"></i> Tambah Obat Baru</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Informasi Obat</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nama Obat *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="generic_name" class="form-label">Nama Generik</label>
+                                <input type="text" class="form-control" id="generic_name" name="generic_name">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category_id" class="form-label">Kategori *</label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    <option value="">Pilih Kategori</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="manufacturer" class="form-label">Pabrik</label>
+                                <input type="text" class="form-control" id="manufacturer" name="manufacturer">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="unit" class="form-label">Satuan *</label>
+                                <select class="form-select" id="unit" name="unit" required>
+                                    <option value="">Pilih Satuan</option>
+                                    <option value="tablet">Tablet</option>
+                                    <option value="kapsul">Kapsul</option>
+                                    <option value="ml">ml</option>
+                                    <option value="botol">Botol</option>
+                                    <option value="tube">Tube</option>
+                                    <option value="sachet">Sachet</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="capacity" class="form-label">Kapasitas</label>
+                                <input type="text" class="form-control" id="capacity" name="capacity" placeholder="500mg, 100ml, dll">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="minimum_stock" class="form-label">Stok Minimum *</label>
+                                <input type="number" class="form-control" id="minimum_stock" name="minimum_stock" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="purchase_price" class="form-label">Harga Beli *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="number" class="form-control" id="purchase_price" name="purchase_price" step="0.01" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="selling_price" class="form-label">Harga Jual *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="number" class="form-control" id="selling_price" name="selling_price" step="0.01" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="barcode_id" class="form-label">ID Barcode/QRcode</label>
+                                <input type="text" class="form-control" id="barcode_id" name="barcode_id" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="storage_location" class="form-label">Lokasi Penyimpanan</label>
+                                <input type="text" class="form-control" id="storage_location" name="storage_location" placeholder="Rak A1, dll">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Deskripsi</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="storage_location" class="form-label">Lokasi Penyimpanan/Etalase *</label>
+                        <input type="text" class="form-control" id="storage_location" name="storage_location" 
+                               placeholder="Contoh: Rak A1, Etalase Depan, Lemari Es" required>
+                        <div class="form-text">Lokasi fisik obat di apotek untuk memudahkan pencarian</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="medicine_image" class="form-label">Gambar Kemasan</label>
+                        <input type="file" class="form-control" id="medicine_image" name="medicine_image" 
+                               accept="image/*" onchange="previewImage(this)">
+                        <div class="form-text">Upload gambar kemasan obat ke folder static/product (JPG, PNG, max 5MB)</div>
+                        <div id="image_preview" class="mt-2" style="display: none;">
+                            <img id="preview_img" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px;"
+                                 onerror="this.style.display='none';">
+                            <p class="text-muted small mt-1">Preview gambar</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('inventory') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Kembali
+                        </a>
+                        <button type="button" class="btn btn-info" onclick="generateBarcodeId()">
+                            <i class="fas fa-barcode"></i> Generate Barcode ID
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Simpan Obat
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview_img').src = e.target.result;
+            document.getElementById('image_preview').style.display = 'block';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+<script>
+function generateBarcodeId() {
+    // Generate format: APT + 6 digit random + year
+    const randomNum = Math.floor(100000 + Math.random() * 900000);
+    const year = new Date().getFullYear().toString().slice(-2);
+    const barcodeId = `APT${randomNum}${year}`;
+
+    document.getElementById('barcode_id').value = barcodeId;
+}
+
+// Auto-calculate selling price based on purchase price
+document.getElementById('purchase_price').addEventListener('input', function() {
+    const purchasePrice = parseFloat(this.value);
+    if (purchasePrice && purchasePrice > 0) {
+        // Default markup 50%
+        const sellingPrice = purchasePrice * 1.5;
+        document.getElementById('selling_price').value = sellingPrice.toFixed(2);
+    }
+});
+</script>
+{% endblock %}

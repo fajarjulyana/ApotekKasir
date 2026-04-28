@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Notifikasi - Manajemen Apotek{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-bell me-3"></i>Pusat Notifikasi
+    </h1>
+    <p class="page-subtitle">Pantau obat yang memerlukan perhatian khusus</p>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center">
+                    <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-warning mb-0">{{ expiring_medicines|length }}</h3>
+                        <p class="text-muted mb-0">Obat Akan Kadaluwarsa</p>
+                        <small class="text-muted">Dalam 2 minggu</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center">
+                    <div class="bg-danger bg-opacity-10 rounded-circle p-3 me-3">
+                        <i class="fas fa-arrow-down fa-2x text-danger"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-danger mb-0">{{ low_stock_medicines|length }}</h3>
+                        <p class="text-muted mb-0">Stok Rendah</p>
+                        <small class="text-muted">Perlu restock segera</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expiring Medicines -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Obat Akan Kadaluwarsa 
+                    <span class="badge bg-dark ms-2">{{ expiring_medicines|length }}</span>
+                </h5>
+                <small class="fw-medium">2 Minggu ke Depan</small>
+            </div>
+            <div class="card-body">
+                {% if expiring_medicines %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nama Obat</th>
+                                <th>Batch</th>
+                                <th>Tanggal Kadaluwarsa</th>
+                                <th>Sisa Hari</th>
+                                <th>Jumlah</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in expiring_medicines %}
+                                {% for batch in item.batches %}
+                                <tr class="{{ 'table-danger' if batch.days_to_expiry <= 7 else 'table-warning' }}">
+                                    <td>{{ item.medicine.name }}</td>
+                                    <td>{{ batch.batch_number }}</td>
+                                    <td>{{ batch.expiry_date.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'danger' if batch.days_to_expiry <= 7 else 'warning' }}">
+                                            {{ batch.days_to_expiry }} hari
+                                        </span>
+                                    </td>
+                                    <td>{{ batch.quantity }} {{ item.medicine.unit }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="markExpired({{ batch.id }})">
+                                            <i class="fas fa-times"></i> Tandai Kadaluwarsa
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Tidak ada obat yang akan kadaluwarsa dalam 2 minggu ke depan.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Low Stock Medicines -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-arrow-down me-2"></i>
+                    Obat Stok Rendah 
+                    <span class="badge bg-light text-dark ms-2">{{ low_stock_medicines|length }}</span>
+                </h5>
+                <small class="fw-medium">Perlu Segera Direstock</small>
+            </div>
+            <div class="card-body">
+                {% if low_stock_medicines %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nama Obat</th>
+                                <th>Stok Saat Ini</th>
+                                <th>Stok Minimum</th>
+                                <th>Kategori</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for medicine in low_stock_medicines %}
+                            <tr>
+                                <td>{{ medicine.name }}</td>
+                                <td>
+                                    <span class="badge bg-danger">
+                                        {{ medicine.total_quantity }} {{ medicine.unit }}
+                                    </span>
+                                </td>
+                                <td>{{ medicine.minimum_stock }} {{ medicine.unit }}</td>
+                                <td>{{ medicine.category_ref.name if medicine.category_ref else '-' }}</td>
+                                <td>
+                                    <a href="{{ url_for('add_batch', medicine_id=medicine.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus"></i> Tambah Stok
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Semua obat memiliki stok yang cukup.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markExpired(batchId) {
+    if (confirm('Apakah Anda yakin ingin menandai batch ini sebagai kadaluwarsa?')) {
+        // TODO: Implement mark expired functionality
+        alert('Fitur ini akan segera diimplementasi');
+    }
+}
+</script>
+{% endblock %}
